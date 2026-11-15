@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+
+<!-- Sicherheitsregel (Content-Security-Policy): Der Browser führt nur Scripts
+     und Styles aus eigenen Dateien aus. Kein Inline-Code, keine fremden Server.
+     Braucht die App später einen fremden Server (z. B. eine KI-Schnittstelle),
+     dessen Adresse bei connect-src ergänzen: connect-src 'self' https://api.example.com -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+
+<!-- ▼ Pro App anpassen (siehe README, Schritt 4) -->
+<title>Meine Finanzen</title>
+<meta name="description" content="Einnahmen, Ausgaben und Fixkosten im Blick">
+<meta name="theme-color" content="#050607">
+<meta name="apple-mobile-web-app-title" content="Finanzen">
+<!-- ▲ Pro App anpassen -->
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="app">
+  <header class="app__header">
+    <h1 class="app__title" id="appTitle">Meine Finanzen</h1>
+    <div class="row">
+      <label class="visually-hidden" for="monthSelect">Monat</label>
+      <select class="input input--compact" id="monthSelect"></select>
+      <button type="button" class="btn btn--small" id="installBtn" hidden>Installieren</button>
+    </div>
+  </header>
+
+  <div class="balance" aria-live="polite">
+    <div class="balance__card"><div class="balance__label">Einnahmen</div><div class="balance__amount is-income" id="hdrIncome">0,00 €</div></div>
+    <div class="balance__card"><div class="balance__label">Ausgaben</div><div class="balance__amount is-expense" id="hdrExpense">0,00 €</div></div>
+    <div class="balance__card balance__card--main" id="hdrBalanceCard"><div class="balance__label">Verfügbar</div><div class="balance__amount" id="hdrBalance">0,00 €</div></div>
+  </div>
+  <p class="carry muted" id="carryRow" hidden></p>
+
+  <main class="app__main">
+
+    <!-- ── Übersicht ── -->
+    <section data-view="overview">
+      <div class="card stack">
+        <h2>Übersicht</h2>
+        <dl class="facts facts--wide" id="summaryRows"></dl>
+      </div>
+      <div class="card stack">
+        <h2>Ausgaben nach Kategorie</h2>
+        <div class="donut">
+          <canvas id="donutChart" width="180" height="180" role="img" aria-label="Ausgaben nach Kategorie"></canvas>
+          <div class="donut__center"><div class="muted">Ausgaben</div><div class="donut__value" id="donutTotal">0,00 €</div></div>
+        </div>
+        <ul class="legend" id="chartLegend"></ul>
+      </div>
+    </section>
+
+    <!-- ── Einnahmen ── -->
+    <section data-view="income" hidden>
+      <h2>Einnahmen</h2>
+      <div id="incomeList"></div>
+    </section>
+
+    <!-- ── Ausgaben ── -->
+    <section data-view="expenses" hidden>
+      <h2>Ausgaben</h2>
+      <div id="expenseList"></div>
+    </section>
+
+    <!-- ── Fixposten ── -->
+    <section data-view="fixed" hidden>
+      <h2>Fixkosten &amp; Fixeinnahmen</h2>
+      <p class="muted">Fixposten werden jeden Monat automatisch übernommen, ab dem Monat ihres Datums.</p>
+      <div id="fixedList"></div>
+    </section>
+
+    <!-- ── Mehr: Kategorien und Einstellungen ── -->
+    <section data-view="more" hidden>
+      <div class="card stack">
+        <h2>Ausgaben-Kategorien</h2>
+        <ul class="list" id="expenseCatList"></ul>
+        <form class="row" id="expenseCatForm">
+          <input class="input grow" id="newExpenseCat" type="text" maxlength="40" placeholder="Neue Kategorie" aria-label="Neue Ausgaben-Kategorie" autocomplete="off">
+          <button type="submit" class="btn btn--ghost">Hinzufügen</button>
+        </form>
+      </div>
+      <div class="card stack">
+        <h2>Einnahmen-Kategorien</h2>
+        <ul class="list" id="incomeCatList"></ul>
+        <form class="row" id="incomeCatForm">
+          <input class="input grow" id="newIncomeCat" type="text" maxlength="40" placeholder="Neue Kategorie" aria-label="Neue Einnahmen-Kategorie" autocomplete="off">
+          <button type="submit" class="btn btn--ghost">Hinzufügen</button>
+        </form>
+      </div>
+
+      <div class="card stack">
+        <h2>Backup</h2>
+        <p class="muted" id="backupInfo">–</p>
+        <div class="row">
+          <button type="button" class="btn" id="exportBtn">Backup exportieren</button>
+          <button type="button" class="btn btn--ghost" id="importBtn">Backup importieren</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+        <div class="row" id="undoRow" hidden>
+          <button type="button" class="btn btn--ghost" id="undoBtn">Letzten Import rückgängig machen</button>
+        </div>
+      </div>
+
+      <div class="card stack" id="securityCard" hidden>
+        <h2>Sicherheit</h2>
+        <p class="muted">Die Daten dieser App sind verschlüsselt. Ohne dein Passwort sind sie nicht lesbar, auch nicht für dich.</p>
+        <div class="row">
+          <button type="button" class="btn btn--ghost" id="lockBtn">Jetzt sperren</button>
+          <button type="button" class="btn btn--ghost" id="changeSecretBtn">Passwort ändern</button>
+        </div>
+      </div>
+
+      <div class="card stack">
+        <h2>App</h2>
+        <dl class="facts">
+          <dt>Version</dt><dd class="mono" id="factVersion">–</dd>
+          <dt>Offline-Modus</dt><dd id="factSw">–</dd>
+          <dt>Installiert</dt><dd id="factInstalled">–</dd>
+          <dt>Speicher</dt><dd id="factStatus">–</dd>
+        </dl>
+        <p class="muted" id="problemInfo" hidden></p>
+        <div class="row">
+          <button type="button" class="btn btn--ghost" id="checkUpdateBtn">Nach Update suchen</button>
+          <button type="button" class="btn btn--danger" id="resetBtn">Alle Daten dieser App löschen</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <button type="button" class="fab" id="fabBtn" aria-label="Neuer Eintrag">+</button>
+
+  <nav class="app__nav" aria-label="Hauptnavigation">
+    <button type="button" class="nav-btn" data-nav="overview" aria-current="page">Übersicht</button>
+    <button type="button" class="nav-btn" data-nav="income">Einnahmen</button>
+    <button type="button" class="nav-btn" data-nav="expenses">Ausgaben</button>
+    <button type="button" class="nav-btn" data-nav="fixed">Fix</button>
+    <button type="button" class="nav-btn" data-nav="more">Mehr</button>
+  </nav>
+</div>
+
+<!-- Neuer Eintrag -->
+<dialog class="dialog" id="entryDialog">
+  <form class="stack" id="entryForm" novalidate>
+    <h2>Neuer Eintrag</h2>
+    <div class="toggle" role="group" aria-label="Art des Eintrags">
+      <button type="button" class="toggle__btn" id="toggleIncome" aria-pressed="true">▲ Einnahme</button>
+      <button type="button" class="toggle__btn" id="toggleExpense" aria-pressed="false">▼ Ausgabe</button>
+    </div>
+    <div><label class="label" for="entryName">Bezeichnung</label><input class="input" id="entryName" type="text" maxlength="60" placeholder="z. B. Miete" autocomplete="off"></div>
+    <div><label class="label" for="entryAmount">Betrag (€)</label><input class="input" id="entryAmount" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+    <div><label class="label" for="entryCategory">Kategorie</label><select class="input" id="entryCategory"></select></div>
+    <div><label class="label" for="entryDate">Datum</label><input class="input" id="entryDate" type="date"></div>
+    <label class="check"><input type="checkbox" id="entryFixed"> Als Fixkosten / Fixeinnahme speichern</label>
+    <p class="cp-lock__error" id="entryError" role="alert"></p>
+    <div class="dialog__actions">
+      <button type="button" class="btn btn--ghost" id="entryCancel">Abbrechen</button>
+      <button type="submit" class="btn" id="entrySave">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Bestätigungsdialog (wird von js/app.js befüllt) -->
+<dialog class="dialog" id="confirmDialog">
+  <h2 id="confirmTitle">Sicher?</h2>
+  <p id="confirmText"></p>
+  <div class="dialog__actions">
+    <button type="button" class="btn btn--ghost" id="confirmNo">Abbrechen</button>
+    <button type="button" class="btn" id="confirmYes">OK</button>
+  </div>
+</dialog>
+
+<!-- Reihenfolge wichtig: erst Konfiguration und Build-Info, dann die App.
+     Jedes Script hat ein eigenes Tag. Kein Code zwischen <script src> und </script>. -->
+<script src="app.config.js"></script>
+<script src="build.js"></script>
+<script src="vendor/chart.umd.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

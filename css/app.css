@@ -1,0 +1,60 @@
+/* app.css – Styles nur für "Meine Finanzen". Grundgerüst: base.css */
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.input--compact { width: auto; min-height: 38px; padding: 6px 10px; font-size: 14px; }
+
+/* Kopf: drei Kennzahlen */
+.balance { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 10px max(var(--gap), env(safe-area-inset-right, 0px)) 0 max(var(--gap), env(safe-area-inset-left, 0px)); }
+.balance__card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-small); padding: 8px 10px; min-width: 0; }
+.balance__card--main { border-color: var(--highlight); }
+.balance__card--main.is-negative { border-color: var(--expense); }
+.balance__label { color: var(--text-muted); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.balance__amount { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--highlight); }
+.balance__card--main.is-negative .balance__amount { color: var(--expense); }
+.is-income { color: var(--income); }
+.is-expense { color: var(--expense); }
+.carry { flex-shrink: 0; text-align: right; padding: 6px max(var(--gap), env(safe-area-inset-right, 0px)) 0; }
+
+.app__main > section > h2 { margin-top: 4px; }
+.facts--wide { grid-template-columns: 1fr auto; font-size: 15px; }
+.facts--wide dd { font-weight: 700; text-align: right; }
+
+/* Diagramm */
+.donut { position: relative; width: 180px; height: 180px; margin: 0 auto; }
+.donut canvas { width: 180px; height: 180px; }
+.donut__center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; text-align: center; }
+.donut__value { font-weight: 700; }
+.legend { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.legend__dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend__pct { color: var(--highlight); font-weight: 600; }
+
+/* Eintragslisten */
+.group { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px var(--gap); margin-bottom: 12px; }
+.group__head { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.group__total { font-weight: 700; }
+.entry { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); }
+.entry__info { min-width: 0; }
+.entry__name { overflow-wrap: anywhere; }
+.entry__meta { color: var(--text-muted); font-size: 12px; }
+.entry__right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.entry__amount { font-weight: 700; white-space: nowrap; }
+.icon-btn { width: 36px; height: 36px; border: 1px solid var(--border); border-radius: var(--radius-small); background: none; color: var(--text-muted); font-size: 15px; cursor: pointer; }
+.icon-btn:disabled { opacity: 0.3; cursor: default; }
+.icon-btn:focus-visible, .fab:focus-visible, .toggle__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.empty { color: var(--text-muted); text-align: center; padding: 28px 0; }
+.tag { margin-left: 8px; padding: 1px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* Knopf "Neuer Eintrag" */
+.fab { position: fixed; right: max(18px, calc(50% - var(--content-width) / 2 + 18px)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 18px); z-index: 40; width: 56px; height: 56px; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-contrast); font-size: 30px; line-height: 1; cursor: pointer; box-shadow: 0 0 22px var(--accent-glow); }
+
+/* Dialog "Neuer Eintrag" */
+.toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.toggle__btn { min-height: 44px; border: 1px solid var(--border); border-radius: var(--radius-small); background: none; color: var(--text-muted); font: 600 14px var(--font-body); cursor: pointer; }
+#toggleIncome[aria-pressed='true'] { border-color: var(--income); color: var(--income); }
+#toggleExpense[aria-pressed='true'] { border-color: var(--expense); color: var(--expense); }
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+select.input { appearance: auto; }
+
+.nav-btn { font-size: 11px; letter-spacing: 0.04em; }
